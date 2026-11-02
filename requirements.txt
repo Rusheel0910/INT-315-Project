@@ -1,0 +1,2 @@
+# PySpark is supplied by the Apache Spark distribution used with spark-submit.
+matplotlib>=3.8,<4
