@@ -11,6 +11,7 @@ from pyspark.sql import DataFrame, SparkSession, functions as F
 from pyspark.sql.types import NumericType
 
 from data_cleaning import CATEGORICAL_COLUMNS, TARGET_COLUMN, quoted_column
+from export_utils import write_spark_csv
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,10 +38,7 @@ FINANCIAL_CANDIDATES = ["Unemployment rate", "Inflation rate", "GDP"]
 
 
 def write_csv(dataframe: DataFrame, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    dataframe.coalesce(1).write.mode("overwrite").option("header", "true").csv(
-        str(path)
-    )
+    write_spark_csv(dataframe, path)
 
 
 def save_target_distribution(dataframe: DataFrame, target_counts: list) -> str:
@@ -192,21 +190,38 @@ def main() -> None:
     spark = (
         SparkSession.builder.appName("INT315 Scholarship Dataset EDA")
         .master("local[*]")
+        .config("spark.ui.showConsoleProgress", "false")
         .getOrCreate()
     )
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
     try:
         dataframe = (
             spark.read.option("header", "true")
-            .option("sep", ";")
+            .option("sep", ",")
             .option("inferSchema", "true")
             .csv(str(CLEANED_PATH))
         )
         row_count = dataframe.count()
         column_count = len(dataframe.columns)
-        print(f"Cleaned dataset dimensions: {row_count} rows x {column_count} columns")
+        print("\nDATASET DIMENSIONS")
+        print(f"Rows: {row_count}")
+        print(f"Columns: {column_count}")
+        print("\nDATASET SCHEMA")
         dataframe.printSchema()
-        dataframe.show(8, truncate=False)
+        sample_columns = [
+            "Age at enrollment",
+            "Admission grade",
+            "Gender",
+            "Scholarship holder",
+            "Curricular units 1st sem (grade)",
+            "Curricular units 2nd sem (grade)",
+            TARGET_COLUMN,
+        ]
+        sample_columns = [name for name in sample_columns if name in dataframe.columns]
+        print("\nSAMPLE RECORDS")
+        dataframe.select(*[quoted_column(name) for name in sample_columns]).show(
+            8, truncate=True, vertical=True
+        )
 
         ANALYSIS_PATH.mkdir(parents=True, exist_ok=True)
         DIAGRAMS_PATH.mkdir(parents=True, exist_ok=True)

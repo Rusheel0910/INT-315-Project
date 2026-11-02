@@ -1,0 +1,6 @@
+﻿metric,value
+evaluated_records,829.0
+accuracy,0.7478890229191797
+weighted_precision,0.7602499792711828
+weighted_recall,0.7478890229191797
+weighted_f1,0.750237765332411

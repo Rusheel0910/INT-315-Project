@@ -1,12 +1,17 @@
 import json
 from pathlib import Path
 
+from openpyxl import load_workbook
 from pyspark.sql import DataFrame, SparkSession, functions as F
 from pyspark.sql.types import NumericType, StringType
 
+from export_utils import write_spark_csv
+
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_PATH = ROOT / "data.csv"
+SOURCE_PATH = ROOT / "scholarship_dataset_fixed.xlsx"
+FALLBACK_SOURCE_PATH = ROOT / "data.csv"
+WORKSHEET_NAME = "Student Data"
 CLEANED_PATH = ROOT / "outputs" / "cleaned_data" / "students.csv"
 SUMMARY_PATH = ROOT / "outputs" / "analysis" / "cleaning_summary.json"
 TARGET_COLUMN = "Target"
@@ -37,18 +42,83 @@ def quoted_column(name: str) -> F.Column:
     return F.col(f"`{name.replace('`', '``')}`")
 
 
-def read_source(spark: SparkSession) -> DataFrame:
-    if not SOURCE_PATH.is_file():
-        raise FileNotFoundError(f"Dataset not found: {SOURCE_PATH}")
+def read_source(spark: SparkSession) -> tuple[DataFrame, Path]:
+    source_path = SOURCE_PATH if SOURCE_PATH.is_file() else FALLBACK_SOURCE_PATH
+    if not source_path.is_file():
+        raise FileNotFoundError(f"Dataset not found: {SOURCE_PATH} or {FALLBACK_SOURCE_PATH}")
 
-    dataframe = (
-        spark.read.option("header", "true")
-        .option("sep", ";")
-        .option("encoding", "UTF-8")
-        .option("inferSchema", "true")
-        .option("mode", "FAILFAST")
-        .csv(str(SOURCE_PATH))
-    )
+    if source_path.suffix.lower() == ".xlsx":
+        workbook = load_workbook(source_path, read_only=True, data_only=True)
+        try:
+            if WORKSHEET_NAME not in workbook.sheetnames:
+                raise ValueError(
+                    f"Expected worksheet {WORKSHEET_NAME!r}; found {workbook.sheetnames}."
+                )
+            rows = workbook[WORKSHEET_NAME].iter_rows(values_only=True)
+            try:
+                original_names = list(next(rows))
+            except StopIteration as error:
+                raise ValueError(f"Worksheet {WORKSHEET_NAME!r} is empty.") from error
+            records = []
+            for row_number, row in enumerate(rows, start=2):
+                if len(row) != len(original_names):
+                    raise ValueError(
+                        f"Malformed worksheet row {row_number}: expected "
+                        f"{len(original_names)} cells, found {len(row)}."
+                    )
+                records.append(
+                    tuple(
+                        value.strip() if isinstance(value, str) and value.strip() else
+                        None if isinstance(value, str) and not value.strip() else value
+                        for value in row
+                    )
+                )
+        finally:
+            workbook.close()
+        if not records:
+            raise ValueError(f"Worksheet {WORKSHEET_NAME!r} has a header but no data rows.")
+        cleaned_names = [str(name).lstrip("\ufeff").strip() for name in original_names]
+        if any(not name for name in cleaned_names):
+            raise ValueError("Worksheet contains an empty column name.")
+        if len(set(cleaned_names)) != len(cleaned_names):
+            raise ValueError("Column names are duplicated after whitespace normalization.")
+        mixed_numeric_columns = {
+            index
+            for index in range(len(cleaned_names))
+            if any(
+                isinstance(row[index], float) and not isinstance(row[index], bool)
+                for row in records
+                if row[index] is not None
+            )
+            and all(
+                isinstance(row[index], (int, float)) and not isinstance(row[index], bool)
+                for row in records
+                if row[index] is not None
+            )
+        }
+        records = [
+            tuple(
+                float(value)
+                if index in mixed_numeric_columns and value is not None
+                else value
+                for index, value in enumerate(row)
+            )
+            for row in records
+        ]
+        dataframe = spark.createDataFrame(records, schema=cleaned_names)
+    else:
+        dataframe = (
+            spark.read.option("header", "true")
+            .option("sep", ";")
+            .option("encoding", "UTF-8")
+            .option("inferSchema", "true")
+            .option("mode", "FAILFAST")
+            .csv(str(source_path))
+        )
+        original_names = dataframe.columns
+        dataframe = dataframe.toDF(
+            *[str(name).lstrip("\ufeff").strip() for name in original_names]
+        )
 
     original_names = dataframe.columns
     cleaned_names = [name.lstrip("\ufeff").strip() for name in original_names]
@@ -63,7 +133,7 @@ def read_source(spark: SparkSession) -> DataFrame:
                 field.name,
                 F.when(F.length(value) == 0, F.lit(None)).otherwise(value),
             )
-    return dataframe
+    return dataframe, source_path
 
 
 def missing_counts(dataframe: DataFrame) -> dict[str, int]:
@@ -78,60 +148,19 @@ def missing_counts(dataframe: DataFrame) -> dict[str, int]:
     return {name: int(count or 0) for name, count in result.items()}
 
 
-def impute_features(dataframe: DataFrame) -> DataFrame:
+def normalize_missing_features(dataframe: DataFrame) -> DataFrame:
     feature_columns = [name for name in dataframe.columns if name != TARGET_COLUMN]
     numeric_columns = [
         field.name
         for field in dataframe.schema.fields
         if field.name in feature_columns and isinstance(field.dataType, NumericType)
     ]
-    categorical = set(numeric_columns) & CATEGORICAL_COLUMNS
-    numeric = [name for name in numeric_columns if name not in categorical]
-
-    if numeric:
-        medians = dataframe.approxQuantile(numeric, [0.5], 0.001)
-        median_values = {
-            name: values[0]
-            for name, values in zip(numeric, medians)
-            if values and values[0] is not None
-        }
-        if median_values:
-            dataframe = dataframe.fillna(median_values)
-        for name in numeric:
-            dataframe = dataframe.withColumn(
-                name,
-                F.when(F.isnan(quoted_column(name).cast("double")), F.lit(None))
-                .otherwise(quoted_column(name)),
-            )
-            if name in median_values:
-                dataframe = dataframe.fillna({name: median_values[name]})
-
-    for name in sorted(categorical):
-        mode = (
-            dataframe.where(quoted_column(name).isNotNull())
-            .groupBy(quoted_column(name))
-            .count()
-            .orderBy(F.desc("count"), F.asc(name))
-            .first()
+    for name in numeric_columns:
+        value = quoted_column(name)
+        dataframe = dataframe.withColumn(
+            name,
+            F.when(F.isnan(value.cast("double")), F.lit(None)).otherwise(value),
         )
-        if mode is not None:
-            dataframe = dataframe.fillna({name: mode[0]})
-
-    string_features = [
-        field.name
-        for field in dataframe.schema.fields
-        if field.name in feature_columns and isinstance(field.dataType, StringType)
-    ]
-    for name in string_features:
-        mode = (
-            dataframe.where(quoted_column(name).isNotNull())
-            .groupBy(quoted_column(name))
-            .count()
-            .orderBy(F.desc("count"), F.asc(name))
-            .first()
-        )
-        if mode is not None:
-            dataframe = dataframe.fillna({name: mode[0]})
     return dataframe
 
 
@@ -139,33 +168,67 @@ def main() -> None:
     spark = (
         SparkSession.builder.appName("INT315 Scholarship Dataset Cleaning")
         .master("local[*]")
+        .config("spark.ui.showConsoleProgress", "false")
         .getOrCreate()
     )
-    spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
 
     try:
-        raw = read_source(spark)
+        raw, source_path = read_source(spark)
         original_count = raw.count()
-        print(f"Source: {SOURCE_PATH}")
-        print(f"Dimensions: {original_count} rows x {len(raw.columns)} columns")
+        print(f"Source: {source_path.name}")
+        print("\nDATASET DIMENSIONS")
+        print(f"Rows: {original_count}")
+        print(f"Columns: {len(raw.columns)}")
+        print("\nDATASET SCHEMA")
         raw.printSchema()
-        raw.show(8, truncate=False)
+        sample_columns = [
+            "Age at enrollment",
+            "Admission grade",
+            "Gender",
+            "Scholarship holder",
+            "Curricular units 1st sem (grade)",
+            "Curricular units 2nd sem (grade)",
+            TARGET_COLUMN,
+        ]
+        sample_columns = [name for name in sample_columns if name in raw.columns]
+        print("\nSAMPLE RECORDS")
+        raw.select(*[quoted_column(name) for name in sample_columns]).show(
+            8, truncate=True, vertical=True
+        )
 
         missing_before = missing_counts(raw)
         duplicates_found = original_count - raw.dropDuplicates().count()
-        cleaned = impute_features(raw)
+        cleaned = normalize_missing_features(raw)
         missing_after = missing_counts(cleaned)
         final_count = cleaned.count()
 
+        quality_summary = spark.createDataFrame(
+            [
+                ("Missing values before cleaning", sum(missing_before.values())),
+                ("Missing values after cleaning", sum(missing_after.values())),
+                ("Exact duplicate records found", duplicates_found),
+                ("Records removed", original_count - final_count),
+            ],
+            ["Check", "Count"],
+        )
+        print("\nDATA QUALITY SUMMARY")
+        quality_summary.show(truncate=False)
+
         CLEANED_PATH.parent.mkdir(parents=True, exist_ok=True)
         SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
-        cleaned.coalesce(1).write.mode("overwrite").option("header", "true").csv(
-            str(CLEANED_PATH)
-        )
+        write_spark_csv(cleaned, CLEANED_PATH)
 
         summary = {
-            "source_file": SOURCE_PATH.name,
-            "source_format": "UTF-8 semicolon-delimited CSV",
+            "source_file": source_path.name,
+            "source_worksheet": (
+                WORKSHEET_NAME if source_path.suffix.lower() == ".xlsx" else None
+            ),
+            "source_format": (
+                f"Excel workbook worksheet: {WORKSHEET_NAME}"
+                if source_path.suffix.lower() == ".xlsx"
+                else "UTF-8 semicolon-delimited CSV fallback"
+            ),
             "rows_before_cleaning": original_count,
             "rows_after_cleaning": final_count,
             "column_count": len(cleaned.columns),
@@ -178,12 +241,11 @@ def main() -> None:
             "target_column": TARGET_COLUMN if TARGET_COLUMN in cleaned.columns else None,
             "target_imputed": False,
             "column_name_normalization": "Trimmed whitespace and removed a possible UTF-8 BOM.",
-            "imputation": "Numeric feature medians; categorical feature modes; target left unchanged.",
+            "missing_value_handling": "No missing values were observed in this source. Feature nulls are retained for training-only ML imputation/invalid-category handling; target nulls are not imputed.",
             "duplicate_handling": "Exact duplicates reported but retained because no student identifier is available.",
         }
         SUMMARY_PATH.write_text(json.dumps(summary, indent=2), encoding="utf-8")
-        print(json.dumps(summary, indent=2))
-        print(f"Cleaned CSV directory: {CLEANED_PATH}")
+        print(f"Cleaned CSV: {CLEANED_PATH}")
         print(f"Cleaning summary: {SUMMARY_PATH}")
     finally:
         spark.stop()

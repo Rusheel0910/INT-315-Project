@@ -1,0 +1,7 @@
+﻿label_type,outcome,records
+Actual,Enrolled,133
+Actual,Dropout,277
+Actual,Graduate,419
+Predicted,Enrolled,147
+Predicted,Dropout,225
+Predicted,Graduate,457

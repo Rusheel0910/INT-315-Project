@@ -1,0 +1,245 @@
+﻿feature,value,records
+Application mode,1,1708
+Application mode,17,872
+Application mode,39,785
+Application mode,43,312
+Application mode,44,213
+Application mode,7,139
+Application mode,18,124
+Application mode,42,77
+Application mode,51,59
+Application mode,16,38
+Application mode,53,35
+Application mode,15,30
+Application mode,5,16
+Application mode,10,10
+Application mode,2,3
+Application mode,26,1
+Application mode,27,1
+Application mode,57,1
+Application order,1,3026
+Application order,2,547
+Application order,3,309
+Application order,4,249
+Application order,5,154
+Application order,6,137
+Application order,9,1
+Application order,0,1
+Course,9500,766
+Course,9147,380
+Course,9238,355
+Course,9085,337
+Course,9773,331
+Course,9991,268
+Course,9670,268
+Course,9254,252
+Course,9070,226
+Course,8014,215
+Course,171,215
+Course,9003,210
+Course,9853,192
+Course,9119,170
+Course,9130,141
+Course,9556,86
+Course,33,12
+Daytime/evening attendance,1,3941
+Daytime/evening attendance,0,483
+Debtor,0,3921
+Debtor,1,503
+Displaced,1,2426
+Displaced,0,1998
+Educational special needs,0,4373
+Educational special needs,1,51
+Father's occupation,9,1010
+Father's occupation,7,666
+Father's occupation,5,516
+Father's occupation,4,386
+Father's occupation,3,384
+Father's occupation,8,318
+Father's occupation,10,266
+Father's occupation,6,242
+Father's occupation,2,197
+Father's occupation,1,134
+Father's occupation,0,128
+Father's occupation,90,65
+Father's occupation,99,19
+Father's occupation,193,15
+Father's occupation,171,8
+Father's occupation,144,8
+Father's occupation,192,6
+Father's occupation,163,5
+Father's occupation,103,4
+Father's occupation,175,4
+Father's occupation,183,3
+Father's occupation,152,3
+Father's occupation,181,3
+Father's occupation,123,3
+Father's occupation,135,3
+Father's occupation,122,2
+Father's occupation,182,2
+Father's occupation,112,2
+Father's occupation,194,2
+Father's occupation,102,2
+Father's occupation,151,2
+Father's occupation,172,2
+Father's occupation,101,1
+Father's occupation,132,1
+Father's occupation,154,1
+Father's occupation,114,1
+Father's occupation,161,1
+Father's occupation,121,1
+Father's occupation,143,1
+Father's occupation,195,1
+Father's occupation,141,1
+Father's occupation,131,1
+Father's occupation,124,1
+Father's occupation,174,1
+Father's occupation,153,1
+Father's occupation,134,1
+Father's qualification,37,1209
+Father's qualification,19,968
+Father's qualification,1,904
+Father's qualification,38,702
+Father's qualification,3,282
+Father's qualification,34,112
+Father's qualification,2,68
+Father's qualification,4,39
+Father's qualification,12,38
+Father's qualification,39,20
+Father's qualification,5,18
+Father's qualification,11,10
+Father's qualification,36,8
+Father's qualification,40,5
+Father's qualification,9,5
+Father's qualification,22,4
+Father's qualification,14,4
+Father's qualification,30,4
+Father's qualification,29,3
+Father's qualification,26,2
+Father's qualification,6,2
+Father's qualification,41,2
+Father's qualification,43,2
+Father's qualification,35,2
+Father's qualification,10,2
+Father's qualification,31,1
+Father's qualification,27,1
+Father's qualification,44,1
+Father's qualification,13,1
+Father's qualification,20,1
+Father's qualification,25,1
+Father's qualification,33,1
+Father's qualification,42,1
+Father's qualification,18,1
+Gender,0,2868
+Gender,1,1556
+International,0,4314
+International,1,110
+Marital status,1,3919
+Marital status,2,379
+Marital status,4,91
+Marital status,5,25
+Marital status,6,6
+Marital status,3,4
+Mother's occupation,9,1577
+Mother's occupation,4,817
+Mother's occupation,5,530
+Mother's occupation,3,351
+Mother's occupation,2,318
+Mother's occupation,7,272
+Mother's occupation,0,144
+Mother's occupation,1,102
+Mother's occupation,6,91
+Mother's occupation,90,70
+Mother's occupation,8,36
+Mother's occupation,191,26
+Mother's occupation,99,17
+Mother's occupation,194,11
+Mother's occupation,141,8
+Mother's occupation,123,7
+Mother's occupation,144,6
+Mother's occupation,192,5
+Mother's occupation,175,5
+Mother's occupation,193,4
+Mother's occupation,10,4
+Mother's occupation,134,4
+Mother's occupation,132,3
+Mother's occupation,143,3
+Mother's occupation,151,3
+Mother's occupation,122,2
+Mother's occupation,152,2
+Mother's occupation,153,2
+Mother's occupation,173,1
+Mother's occupation,171,1
+Mother's occupation,125,1
+Mother's occupation,131,1
+Mother's qualification,1,1069
+Mother's qualification,37,1009
+Mother's qualification,19,953
+Mother's qualification,38,562
+Mother's qualification,3,438
+Mother's qualification,34,130
+Mother's qualification,2,83
+Mother's qualification,4,49
+Mother's qualification,12,42
+Mother's qualification,5,21
+Mother's qualification,40,9
+Mother's qualification,9,8
+Mother's qualification,39,8
+Mother's qualification,41,6
+Mother's qualification,6,4
+Mother's qualification,43,4
+Mother's qualification,42,4
+Mother's qualification,35,3
+Mother's qualification,10,3
+Mother's qualification,29,3
+Mother's qualification,11,3
+Mother's qualification,30,3
+Mother's qualification,36,3
+Mother's qualification,14,2
+Mother's qualification,27,1
+Mother's qualification,26,1
+Mother's qualification,44,1
+Mother's qualification,22,1
+Mother's qualification,18,1
+Nacionality,1,4314
+Nacionality,41,38
+Nacionality,26,14
+Nacionality,22,13
+Nacionality,6,13
+Nacionality,24,5
+Nacionality,103,3
+Nacionality,100,3
+Nacionality,11,3
+Nacionality,101,2
+Nacionality,25,2
+Nacionality,62,2
+Nacionality,21,2
+Nacionality,105,2
+Nacionality,2,2
+Nacionality,108,1
+Nacionality,13,1
+Nacionality,17,1
+Nacionality,32,1
+Nacionality,109,1
+Nacionality,14,1
+Previous qualification,1,3717
+Previous qualification,39,219
+Previous qualification,19,162
+Previous qualification,3,126
+Previous qualification,12,45
+Previous qualification,40,40
+Previous qualification,42,36
+Previous qualification,2,23
+Previous qualification,6,16
+Previous qualification,9,11
+Previous qualification,4,8
+Previous qualification,38,7
+Previous qualification,43,6
+Previous qualification,10,4
+Previous qualification,15,2
+Previous qualification,5,1
+Previous qualification,14,1
+Scholarship holder,0,3325
+Scholarship holder,1,1099
+Tuition fees up to date,1,3896
+Tuition fees up to date,0,528

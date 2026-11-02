@@ -1,0 +1,10 @@
+﻿actual_label,predicted_label,records
+Dropout,Dropout,199
+Dropout,Enrolled,39
+Dropout,Graduate,39
+Enrolled,Dropout,14
+Enrolled,Enrolled,61
+Enrolled,Graduate,58
+Graduate,Dropout,12
+Graduate,Enrolled,47
+Graduate,Graduate,360
